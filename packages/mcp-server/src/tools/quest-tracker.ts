@@ -169,7 +169,7 @@ const FACTION_FIELDS = {
   relationships: {
     type: 'array',
     description:
-      'What this faction is to others. Symmetric and stored once, so naming the same pair again rewrites that tie rather than adding a second. Name the far end by otherName or otherUuid, never both.',
+      'What this faction is to others. Symmetric and stored once, so naming the same pair again changes that tie rather than adding a second, and on an update it changes only the fields you name. Name the far end by otherName or otherUuid, never both.',
     items: {
       type: 'object',
       properties: {
@@ -181,11 +181,15 @@ const FACTION_FIELDS = {
         tier: {
           type: 'string',
           enum: ['allied', 'neutral', 'opposed'],
-          description: 'Default: neutral.',
+          description: 'On a create, default: neutral. On an update, left as it is unless named.',
         },
         gmNote: { type: 'string', description: 'What is really between them. GM-only.' },
         playerNote: { type: 'string', description: "The party's own line about it." },
-        revealed: { type: 'boolean', description: 'Has the table been told? Default: false.' },
+        revealed: {
+          type: 'boolean',
+          description:
+            'Has the table been told? On a create, default: false. On an update, left as it is unless named — do not send it to mean "no".',
+        },
       },
       additionalProperties: false,
     },
@@ -280,7 +284,7 @@ export class QuestTrackerTools {
       {
         name: 'faction-update',
         description:
-          'Change a Faction that already exists, and what it is to other factions. Name it by uuid, or by name if you do not have one, but never both at once — a payload carrying both is refused. A field you leave out stays as it is, and a relationship you do not name is left alone.',
+          'Change a Faction that already exists, and what it is to other factions. Name it by uuid, or by name if you do not have one, but never both at once — a payload carrying both is refused. A field you leave out stays as it is, and a relationship you do not name is left alone. A relationship you do name changes only the fields named: re-send a pair with just a tier and its notes and its revealed flag stay exactly as the GM left them.',
         inputSchema: {
           type: 'object',
           properties: {
