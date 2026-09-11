@@ -27,6 +27,8 @@ import { ActorManagementTools } from './tools/actor-management.js';
 
 import { QuestCreationTools } from './tools/quest-creation.js';
 
+import { QuestTrackerTools } from './tools/quest-tracker.js';
+
 import { DiceRollTools } from './tools/dice-roll.js';
 
 import { CampaignManagementTools } from './tools/campaign-management.js';
@@ -1206,6 +1208,8 @@ async function startBackend(): Promise<void> {
 
   const questCreationTools = new QuestCreationTools({ foundryClient, logger });
 
+  const questTrackerTools = new QuestTrackerTools({ foundryClient, logger });
+
   const diceRollTools = new DiceRollTools({ foundryClient, logger });
 
   const campaignManagementTools = new CampaignManagementTools(foundryClient, logger);
@@ -1430,6 +1434,8 @@ async function startBackend(): Promise<void> {
     ...dnd5eFeaturesFromCompendiumTools.getToolDefinitions(),
 
     ...questCreationTools.getToolDefinitions(),
+
+    ...questTrackerTools.getToolDefinitions(),
 
     ...diceRollTools.getToolDefinitions(),
 
@@ -1663,6 +1669,20 @@ async function startBackend(): Promise<void> {
 
                 case 'search-journals':
                   result = await questCreationTools.handleSearchJournals(args);
+
+                  break;
+
+                // Quest Tracker module tools: these forward to the module's own CONFIG.queries
+                // handlers inside Foundry. The bridge's Foundry module is not involved beyond
+                // relaying the query name.
+
+                case 'quest-create':
+                case 'quest-update':
+                case 'faction-create':
+                case 'faction-update':
+                case 'quest-list':
+                case 'quest-get':
+                  result = await questTrackerTools.handleToolCall(name, args);
 
                   break;
 
