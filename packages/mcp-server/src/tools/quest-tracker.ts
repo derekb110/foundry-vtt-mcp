@@ -21,6 +21,23 @@ export interface QuestTrackerToolsOptions {
 
 const QUERY_PREFIX = 'quest-tracker.';
 
+/**
+ * Which module query each tool forwards to.
+ *
+ * These are the names in `BRIDGE_QUERIES` in the module's `scripts/quest-ops.mjs`, minus the
+ * prefix above. That list is the source of truth and this is a literal copy, because the server
+ * cannot import from a Foundry module; a node test there holds the list and the prefix to the
+ * table in the module's README. A query renamed there is renamed here.
+ */
+const TOOL_QUERIES = {
+  'quest-create': 'createQuest',
+  'quest-update': 'updateQuest',
+  'faction-create': 'createFaction',
+  'faction-update': 'updateFaction',
+  'quest-list': 'listQuests',
+  'quest-get': 'getQuest',
+} as const;
+
 /** HTML strings are what the module stores: these fields are rendered as written. */
 const html = (description: string) => ({ type: 'string' as const, description });
 
@@ -147,7 +164,7 @@ const FACTION_FIELDS = {
     description: 'A free label: organisation, people, cult, force, curse. Player-facing.',
   },
   description: html('What the faction is and what it wants. Player-facing.'),
-  standing: html('Where the party sits with them, in prose. Player-facing.'),
+  standing: html('Where the party sits with them, in prose. GM-only.'),
   gmNotes: html('What is actually going on. GM-only.'),
   relationships: {
     type: 'array',
@@ -211,12 +228,18 @@ export class QuestTrackerTools {
       {
         name: 'quest-update',
         description:
-          'Change a Quest that already exists. Name it by uuid, or by name if you do not have one. A field you leave out stays as it is. Stages are append-only by title: a title the quest already has is left alone and reported back in "skipped". Use "narrowing" after the party makes progress — it rewrites the what-remains line and appends the before-and-after to the GM-only history.',
+          'Change a Quest that already exists. Name it by uuid, or by name if you do not have one, but never both at once — a payload carrying both is refused. A field you leave out stays as it is. Stages are append-only by title: a title the quest already has is left alone and reported back in "skipped". "factions" and "queued" add and change, and never remove: an entry already on the quest keeps every field you leave out, and one you do not mention stays; taking a faction link or a queued addition off a quest is done on the sheet in Foundry. Use "narrowing" after the party makes progress — it rewrites the what-remains line and appends the before-and-after to the GM-only history.',
         inputSchema: {
           type: 'object',
           properties: {
-            uuid: { type: 'string', description: "The quest entry's uuid. Preferred over name." },
-            name: { type: 'string', description: "The quest's name, if you do not have its uuid." },
+            uuid: {
+              type: 'string',
+              description: "The quest entry's uuid. Preferred over name; never send both.",
+            },
+            name: {
+              type: 'string',
+              description: "The quest's name, if you do not have its uuid. Never send both.",
+            },
             ...QUEST_FIELDS,
             narrowing: {
               type: 'object',
@@ -257,14 +280,17 @@ export class QuestTrackerTools {
       {
         name: 'faction-update',
         description:
-          'Change a Faction that already exists, and what it is to other factions. Name it by uuid, or by name if you do not have one. A field you leave out stays as it is.',
+          'Change a Faction that already exists, and what it is to other factions. Name it by uuid, or by name if you do not have one, but never both at once — a payload carrying both is refused. A field you leave out stays as it is, and a relationship you do not name is left alone.',
         inputSchema: {
           type: 'object',
           properties: {
-            uuid: { type: 'string', description: "The faction entry's uuid. Preferred over name." },
+            uuid: {
+              type: 'string',
+              description: "The faction entry's uuid. Preferred over name; never send both.",
+            },
             name: {
               type: 'string',
-              description: "The faction's name, if you do not have its uuid.",
+              description: "The faction's name, if you do not have its uuid. Never send both.",
             },
             ...FACTION_FIELDS,
           },
@@ -297,22 +323,9 @@ export class QuestTrackerTools {
    * Handle tool execution
    */
   async handleToolCall(name: string, args: any): Promise<any> {
-    switch (name) {
-      case 'quest-create':
-        return this.forward(name, 'createQuest', args);
-      case 'quest-update':
-        return this.forward(name, 'updateQuest', args);
-      case 'faction-create':
-        return this.forward(name, 'createFaction', args);
-      case 'faction-update':
-        return this.forward(name, 'updateFaction', args);
-      case 'quest-list':
-        return this.forward(name, 'listQuests', args);
-      case 'quest-get':
-        return this.forward(name, 'getQuest', args);
-      default:
-        throw new Error(`Unknown quest tracker tool: ${name}`);
-    }
+    const query = TOOL_QUERIES[name as keyof typeof TOOL_QUERIES];
+    if (!query) throw new Error(`Unknown quest tracker tool: ${name}`);
+    return this.forward(name, query, args);
   }
 
   /**
