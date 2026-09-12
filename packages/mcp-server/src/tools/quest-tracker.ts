@@ -232,7 +232,7 @@ export class QuestTrackerTools {
       {
         name: 'quest-update',
         description:
-          'Change a Quest that already exists. Name it by uuid, or by name if you do not have one, but never both at once — a payload carrying both is refused. A field you leave out stays as it is. Stages are append-only by title: a title the quest already has is left alone and reported back in "skipped". "factions" and "queued" add and change, and never remove: an entry already on the quest keeps every field you leave out, and one you do not mention stays; taking a faction link or a queued addition off a quest is done on the sheet in Foundry. Use "narrowing" after the party makes progress — it rewrites the what-remains line and appends the before-and-after to the GM-only history.',
+          'Change a Quest that already exists. Name it by uuid, or by name if you do not have one, but never both at once — a payload carrying both is refused. A field you leave out stays as it is. Stages are append-only by title: a title the quest already has is left alone and reported back in "skipped". "factions" and "queued" add and change, and never remove: an entry already on the quest keeps every field you leave out, and one you do not mention stays; taking a faction link or a queued addition off a quest is done on the sheet in Foundry. Use "narrowing" after the party makes progress — it rewrites the what-remains line and appends the before-and-after to the GM-only history. A "status" that is not a forward move is refused unless the payload also carries "correction": true, which you send only when the GM has asked for the undo.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -262,6 +262,11 @@ export class QuestTrackerTools {
               },
               required: ['taken', 'remains'],
               additionalProperties: false,
+            },
+            correction: {
+              type: 'boolean',
+              description:
+                "Declares that the status in this payload is a move the campaign's own order refuses — Resolved, Failed, or Expired back to Lead or Active, or Active back to Lead. Send it only when the GM asks you to undo or correct a status, and never on your own initiative: a status carried over from an earlier read is the likelier mistake, so without this flag the module refuses the move rather than put a finished quest back on the board for every player. Forward moves — Lead to Active, Active to Resolved, Failed, or Expired — never need it.",
             },
           },
           additionalProperties: false,
