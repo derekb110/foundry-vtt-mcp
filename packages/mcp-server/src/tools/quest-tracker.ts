@@ -81,7 +81,7 @@ const STAGE_ACTOR_REVEALS = ['hidden', 'unknown', 'named'] as const;
 const STAGE_ACTORS_SCHEMA = {
   type: 'array',
   description:
-    "Who the Stage turns on, written with a Stage that is new to the quest. Name each actor by actorName or actorUuid, never both. It has to be one of the world's own actors — a compendium or token actor is refused — and a name that matches no actor or several is refused, so name a common name like \"Guard\" by uuid. The same actor twice on one Stage is refused. Every actor is looked up before anything is written, so one bad name fails the whole call. The Stage still arrives hidden, so no actor reaches a player until the GM reveals it.",
+    "Who the Stage turns on, written with a Stage that is new to the quest. Name each actor by actorName or actorUuid, never both. It has to be one of the world's own actors — a compendium or token actor is refused — and a name that matches no actor or several is refused, so name a common name like \"Guard\" by uuid. The same actor twice on one Stage is refused. Every actor is looked up before anything is written, so one bad name fails the whole call. A Stage arrives hidden unless it is sent with revealed true, so no actor reaches a player until the Stage is revealed and the quest published.",
   items: {
     type: 'object',
     properties: {
@@ -117,7 +117,7 @@ const STAGE_ACTORS_SCHEMA = {
 const STAGE_CHANGES_SCHEMA = {
   type: 'array',
   description:
-    "Changes to the actors on Stages the quest already has; a Stage's title, text and objectives are never changed here. Name each Stage by stageUuid, or by stageTitle when only one of the quest's Stages has that title — read the quest with quest-get for both — and name each Stage once. \"actors\" adds an actor the Stage does not carry, hidden unless you say otherwise, and changes an actor it does carry: only the fields you send change, so a role or a reveal can move without removing the actor. \"remove\" takes actors off; naming one the Stage does not carry is refused. Name each actor once per Stage change. Every Stage and actor is looked up before anything is written, so one bad title or name fails the whole call. A Stage the same call adds under \"stages\" cannot be changed here yet.",
+    "Changes to the actors on Stages the quest already has; a Stage's title, text and objectives are never changed here. Name each Stage by stageUuid, or by stageTitle when only one of the quest's Stages has that title — read the quest with quest-get for both — and name each Stage once. \"actors\" adds an actor the Stage does not carry, hidden unless you say otherwise, and changes an actor it does carry: only the fields you send change, so a role or a reveal can move without removing the actor. \"remove\" takes actors off; naming one the Stage does not carry is refused. Name each actor once per Stage change. \"revealed\" reveals or hides the Stage. Every Stage and actor is looked up before anything is written, so one bad title or name fails the whole call. A Stage the same call adds under \"stages\" cannot be changed here yet.",
   items: {
     type: 'object',
     properties: {
@@ -154,6 +154,11 @@ const STAGE_CHANGES_SCHEMA = {
           additionalProperties: false,
         },
       },
+      revealed: {
+        type: 'boolean',
+        description:
+          "true reveals the Stage to the party and false hides it again, the same as the GM's Reveal eye on the quest card; left out, the Stage stays as it is. It does not publish the quest, and an actor sent as hidden stays hidden.",
+      },
     },
     additionalProperties: false,
   },
@@ -162,13 +167,18 @@ const STAGE_CHANGES_SCHEMA = {
 const STAGES_SCHEMA = {
   type: 'array',
   description:
-    "The quest's Stages in play order. Each becomes its own page so the GM can reveal it on its own; every new Stage arrives hidden.",
+    "The quest's Stages in play order. Each becomes its own page so it can be revealed on its own; a new Stage arrives hidden unless it is sent with revealed true.",
   items: {
     type: 'object',
     properties: {
       title: { type: 'string', description: "The Stage's name, which is also its page name." },
       html: html('The Stage in party voice, as HTML.'),
       actors: STAGE_ACTORS_SCHEMA,
+      revealed: {
+        type: 'boolean',
+        description:
+          "true makes the Stage arrive revealed, the same as the GM's Reveal eye on the quest card; left out or false, it arrives hidden. It does not publish the quest, so the party sees it once the GM publishes. A Stage skipped by title is skipped with its revealed; reveal a Stage the quest already has through stageChanges.",
+      },
       objectives: {
         type: 'array',
         description:
@@ -319,7 +329,7 @@ export class QuestTrackerTools {
       {
         name: 'quest-create',
         description:
-          "Create a Quest in the Quest Tracker module: a journal entry in the Quests folder with an overview page and one page per Stage. The field names are the campaign's LOG block names. The quest is created unpublished with every Stage hidden — Publish and Reveal are the GM's, at the table.",
+          "Create a Quest in the Quest Tracker module: a journal entry in the Quests folder with an overview page and one page per Stage. The field names are the campaign's LOG block names. The quest is created unpublished, and every Stage arrives hidden unless it is sent with revealed true — Publish is the GM's, at the table.",
         inputSchema: {
           type: 'object',
           properties: {
@@ -336,7 +346,7 @@ export class QuestTrackerTools {
       {
         name: 'quest-update',
         description:
-          'Change a Quest that already exists. Name it by uuid, or by name if you do not have one, but never both at once — a payload carrying both is refused. A field you leave out stays as it is. Stages are append-only by title: a title the quest already has is left alone and reported back in "skipped". To add, change or remove actors on a Stage the quest already has, use "stageChanges", which never touches a Stage\'s title, text or objectives. "factions" and "queued" add and change, and never remove: an entry already on the quest keeps every field you leave out, and one you do not mention stays; taking a faction link or a queued addition off a quest is done on the sheet in Foundry. Use "narrowing" after the party makes progress — it rewrites the what-remains line and appends the before-and-after to the GM-only history. A "status" that is not a forward move is refused unless the payload also carries "correction": true, which you send only when the GM has asked for the undo.',
+          'Change a Quest that already exists. Name it by uuid, or by name if you do not have one, but never both at once — a payload carrying both is refused. A field you leave out stays as it is. Stages are append-only by title: a title the quest already has is left alone and reported back in "skipped". To add, change or remove actors on a Stage the quest already has, or to reveal or hide it, use "stageChanges", which never touches a Stage\'s title, text or objectives. Publish is the GM\'s. "factions" and "queued" add and change, and never remove: an entry already on the quest keeps every field you leave out, and one you do not mention stays; taking a faction link or a queued addition off a quest is done on the sheet in Foundry. Use "narrowing" after the party makes progress — it rewrites the what-remains line and appends the before-and-after to the GM-only history. A "status" that is not a forward move is refused unless the payload also carries "correction": true, which you send only when the GM has asked for the undo.',
         inputSchema: {
           type: 'object',
           properties: {

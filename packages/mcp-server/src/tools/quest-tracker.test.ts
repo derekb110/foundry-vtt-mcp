@@ -150,11 +150,11 @@ describe('stage changes', () => {
     expect(stageChangesOf('quest-create')).toBeUndefined();
   });
 
-  it('names a stage by uuid or title and takes actors and remove, nothing else', () => {
+  it('names a stage by uuid or title and takes actors, remove and revealed, nothing else', () => {
     const { items } = stageChangesOf('quest-update');
     expect(items.additionalProperties).toBe(false);
     expect(Object.keys(items.properties).sort()).toEqual(
-      ['actors', 'remove', 'stageTitle', 'stageUuid'].sort()
+      ['actors', 'remove', 'revealed', 'stageTitle', 'stageUuid'].sort()
     );
   });
 
@@ -194,6 +194,45 @@ describe('stage changes', () => {
           remove: [{ actorUuid: 'Actor.x1y2z3' }],
         },
       ],
+    };
+    await tools.handleToolCall('quest-update', args);
+    expect(query).toHaveBeenCalledWith('quest-tracker.updateQuest', args);
+  });
+});
+
+describe('stage reveal', () => {
+  const stageOf = (tool: string) => definition(tool).inputSchema.properties.stages.items.properties;
+  const changeOf = () => definition('quest-update').inputSchema.properties.stageChanges.items.properties;
+
+  it('offers revealed as a boolean on a new Stage, on both quest tools', () => {
+    for (const tool of ['quest-create', 'quest-update']) {
+      expect(stageOf(tool).revealed?.type).toBe('boolean');
+    }
+  });
+
+  it('tells the model a new Stage left without revealed arrives hidden', () => {
+    expect(stageOf('quest-create').revealed.description).toMatch(/arrives hidden/i);
+  });
+
+  it('offers revealed as a boolean on a stage change: true reveals, false hides, left out keeps', () => {
+    const { revealed } = changeOf();
+    expect(revealed?.type).toBe('boolean');
+    expect(revealed.description).toMatch(/false hides/i);
+    expect(revealed.description).toMatch(/stays as it is/i);
+  });
+
+  it('says a reveal never publishes the quest, and Publish stays the GM\'s', () => {
+    expect(definition('quest-create').description).not.toMatch(/Publish and Reveal/);
+    expect(definition('quest-create').description).toMatch(/Publish is the GM's/);
+    expect(changeOf().revealed.description).toMatch(/does not publish/i);
+  });
+
+  it('forwards revealed unchanged to the module query, on a new Stage and on a change', async () => {
+    const { tools, query } = makeTools();
+    const args = {
+      uuid: 'JournalEntry.abc',
+      stages: [{ title: 'Into the undercroft', revealed: true }],
+      stageChanges: [{ stageTitle: 'Raise the ward', revealed: false }],
     };
     await tools.handleToolCall('quest-update', args);
     expect(query).toHaveBeenCalledWith('quest-tracker.updateQuest', args);
