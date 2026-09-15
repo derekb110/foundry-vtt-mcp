@@ -107,7 +107,7 @@ const STAGE_ACTORS_SCHEMA = {
         type: 'string',
         enum: STAGE_ACTOR_REVEALS,
         description:
-          'What the party is handed of this actor once the GM reveals the Stage: hidden is nothing, unknown is "Unknown" with the role word, named is the name and portrait. Default: hidden.',
+          'What the party is handed of this actor once the Stage is revealed: hidden is nothing, unknown is "Unknown" with the role word, named is the name and portrait. Default: hidden.',
       },
     },
     additionalProperties: false,
