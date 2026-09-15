@@ -141,3 +141,61 @@ describe('stage actors', () => {
     expect(query).toHaveBeenCalledWith('quest-tracker.createQuest', args);
   });
 });
+
+describe('stage changes', () => {
+  const stageChangesOf = (tool: string) => definition(tool).inputSchema.properties.stageChanges;
+
+  it('offers stageChanges on quest-update only, since a create has no stage to change', () => {
+    expect(stageChangesOf('quest-update')?.type).toBe('array');
+    expect(stageChangesOf('quest-create')).toBeUndefined();
+  });
+
+  it('names a stage by uuid or title and takes actors and remove, nothing else', () => {
+    const { items } = stageChangesOf('quest-update');
+    expect(items.additionalProperties).toBe(false);
+    expect(Object.keys(items.properties).sort()).toEqual(
+      ['actors', 'remove', 'stageTitle', 'stageUuid'].sort()
+    );
+  });
+
+  it("takes actors in a new Stage's shape, with the same roles and reveal states", () => {
+    const { actors } = stageChangesOf('quest-update').items.properties;
+    expect(Object.keys(actors.items.properties).sort()).toEqual(
+      ['actorName', 'actorUuid', 'label', 'reveal', 'role'].sort()
+    );
+    expect(actors.items.additionalProperties).toBe(false);
+    expect(actors.items.properties.role.enum).toEqual(['meet', 'defeat', 'protect', 'find', 'other']);
+    expect(actors.items.properties.reveal.enum).toEqual(['hidden', 'unknown', 'named']);
+  });
+
+  it('names each actor to remove by actorUuid or actorName and nothing else', () => {
+    const { remove } = stageChangesOf('quest-update').items.properties;
+    expect(remove.type).toBe('array');
+    expect(remove.items.additionalProperties).toBe(false);
+    expect(Object.keys(remove.items.properties).sort()).toEqual(['actorName', 'actorUuid']);
+  });
+
+  it('tells the model an actor on the stage merges, a removal must be carried, and the stage is untouched', () => {
+    const { description } = stageChangesOf('quest-update');
+    expect(description).toMatch(/only the fields you send/i);
+    expect(description).toMatch(/does not carry/i);
+    expect(description).toMatch(/title, text and objectives/i);
+    expect(description).toMatch(/quest-get/i);
+  });
+
+  it('forwards stage changes unchanged to the module query', async () => {
+    const { tools, query } = makeTools();
+    const args = {
+      uuid: 'JournalEntry.abc',
+      stageChanges: [
+        {
+          stageTitle: 'Raise the ward',
+          actors: [{ actorName: 'Sister Maren', reveal: 'named' }],
+          remove: [{ actorUuid: 'Actor.x1y2z3' }],
+        },
+      ],
+    };
+    await tools.handleToolCall('quest-update', args);
+    expect(query).toHaveBeenCalledWith('quest-tracker.updateQuest', args);
+  });
+});
