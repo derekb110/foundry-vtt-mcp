@@ -114,6 +114,51 @@ const STAGE_ACTORS_SCHEMA = {
   },
 } as const;
 
+const STAGE_CHANGES_SCHEMA = {
+  type: 'array',
+  description:
+    "Changes to the actors on Stages the quest already has; a Stage's title, text and objectives are never changed here. Name each Stage by stageUuid, or by stageTitle when only one of the quest's Stages has that title — read the quest with quest-get for both — and name each Stage once. \"actors\" adds an actor the Stage does not carry, hidden unless you say otherwise, and changes an actor it does carry: only the fields you send change, so a role or a reveal can move without removing the actor. \"remove\" takes actors off; naming one the Stage does not carry is refused. Name each actor once per Stage change. Every Stage and actor is looked up before anything is written, so one bad title or name fails the whole call. A Stage the same call adds under \"stages\" cannot be changed here yet.",
+  items: {
+    type: 'object',
+    properties: {
+      stageUuid: {
+        type: 'string',
+        description: "The Stage page's uuid, as quest-get reports it. Preferred; never send with stageTitle.",
+      },
+      stageTitle: {
+        type: 'string',
+        description:
+          "The Stage's exact title, capitals included, if only one of the quest's Stages has it. Never send with stageUuid.",
+      },
+      actors: {
+        ...STAGE_ACTORS_SCHEMA,
+        description:
+          "Actors to add to the Stage or change on it, in a new Stage's actor shape. For an actor already on the Stage only the fields you send change; a new one defaults to role meet and reveal hidden. A label is refused unless the actor's role, sent or kept, is other.",
+      },
+      remove: {
+        type: 'array',
+        description: 'Actors to take off the Stage. Each has to be on it already.',
+        items: {
+          type: 'object',
+          properties: {
+            actorUuid: {
+              type: 'string',
+              description: 'The world actor\'s uuid, e.g. "Actor.abc123". Never send with actorName.',
+            },
+            actorName: {
+              type: 'string',
+              description:
+                "A world actor's exact name, capitals included, if you do not have its uuid. Never send with actorUuid.",
+            },
+          },
+          additionalProperties: false,
+        },
+      },
+    },
+    additionalProperties: false,
+  },
+} as const;
+
 const STAGES_SCHEMA = {
   type: 'array',
   description:
@@ -291,7 +336,7 @@ export class QuestTrackerTools {
       {
         name: 'quest-update',
         description:
-          'Change a Quest that already exists. Name it by uuid, or by name if you do not have one, but never both at once — a payload carrying both is refused. A field you leave out stays as it is. Stages are append-only by title: a title the quest already has is left alone and reported back in "skipped". "factions" and "queued" add and change, and never remove: an entry already on the quest keeps every field you leave out, and one you do not mention stays; taking a faction link or a queued addition off a quest is done on the sheet in Foundry. Use "narrowing" after the party makes progress — it rewrites the what-remains line and appends the before-and-after to the GM-only history. A "status" that is not a forward move is refused unless the payload also carries "correction": true, which you send only when the GM has asked for the undo.',
+          'Change a Quest that already exists. Name it by uuid, or by name if you do not have one, but never both at once — a payload carrying both is refused. A field you leave out stays as it is. Stages are append-only by title: a title the quest already has is left alone and reported back in "skipped". To add, change or remove actors on a Stage the quest already has, use "stageChanges", which never touches a Stage\'s title, text or objectives. "factions" and "queued" add and change, and never remove: an entry already on the quest keeps every field you leave out, and one you do not mention stays; taking a faction link or a queued addition off a quest is done on the sheet in Foundry. Use "narrowing" after the party makes progress — it rewrites the what-remains line and appends the before-and-after to the GM-only history. A "status" that is not a forward move is refused unless the payload also carries "correction": true, which you send only when the GM has asked for the undo.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -304,6 +349,7 @@ export class QuestTrackerTools {
               description: "The quest's name, if you do not have its uuid. Never send both.",
             },
             ...QUEST_FIELDS,
+            stageChanges: STAGE_CHANGES_SCHEMA,
             narrowing: {
               type: 'object',
               description:
