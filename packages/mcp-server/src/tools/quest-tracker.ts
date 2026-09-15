@@ -85,7 +85,11 @@ const STAGE_ACTORS_SCHEMA = {
   items: {
     type: 'object',
     properties: {
-      actorName: { type: 'string', description: "The actor's name in the world." },
+      actorName: {
+        type: 'string',
+        description:
+          "A world actor's exact name, capitals included, if you do not have its uuid. Never send with actorUuid.",
+      },
       actorUuid: {
         type: 'string',
         description: 'The world actor\'s uuid, e.g. "Actor.abc123". Preferred when names repeat.',
@@ -370,7 +374,7 @@ export class QuestTrackerTools {
       {
         name: 'quest-get',
         description:
-          'One Quest whole, as the GM sees it: every overview field including the GM-only ones, and every Stage with its text, its Objectives, and whether it has been revealed.',
+          'One Quest whole, as the GM sees it: every overview field including the GM-only ones, and every Stage with its text, its Objectives, whether it has been revealed, and its actors, each with its reveal.',
         inputSchema: {
           type: 'object',
           properties: {
