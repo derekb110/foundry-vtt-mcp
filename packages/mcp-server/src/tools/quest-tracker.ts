@@ -74,6 +74,42 @@ const GIVER_SCHEMA = {
   additionalProperties: false,
 } as const;
 
+/** The module's `STAGE_ACTOR_ROLE` and `STAGE_ACTOR_REVEAL`, copied for the same reason the query names are. */
+const STAGE_ACTOR_ROLES = ['meet', 'defeat', 'protect', 'find', 'other'] as const;
+const STAGE_ACTOR_REVEALS = ['hidden', 'unknown', 'named'] as const;
+
+const STAGE_ACTORS_SCHEMA = {
+  type: 'array',
+  description:
+    "Who the Stage turns on, written with a Stage that is new to the quest. Name each actor by actorName or actorUuid, never both. It has to be one of the world's own actors — a compendium or token actor is refused — and a name that matches no actor or several is refused, so name a common name like \"Guard\" by uuid. The same actor twice on one Stage is refused. Every actor is looked up before anything is written, so one bad name fails the whole call. The Stage still arrives hidden, so no actor reaches a player until the GM reveals it.",
+  items: {
+    type: 'object',
+    properties: {
+      actorName: { type: 'string', description: "The actor's name in the world." },
+      actorUuid: {
+        type: 'string',
+        description: 'The world actor\'s uuid, e.g. "Actor.abc123". Preferred when names repeat.',
+      },
+      role: {
+        type: 'string',
+        enum: STAGE_ACTOR_ROLES,
+        description: 'What the Stage says the actor is there for. Default: meet.',
+      },
+      label: {
+        type: 'string',
+        description: 'The word printed when role is "other". Refused on any other role.',
+      },
+      reveal: {
+        type: 'string',
+        enum: STAGE_ACTOR_REVEALS,
+        description:
+          'What the party is handed of this actor once the GM reveals the Stage: hidden is nothing, unknown is "Unknown" with the role word, named is the name and portrait. Default: hidden.',
+      },
+    },
+    additionalProperties: false,
+  },
+} as const;
+
 const STAGES_SCHEMA = {
   type: 'array',
   description:
@@ -83,6 +119,7 @@ const STAGES_SCHEMA = {
     properties: {
       title: { type: 'string', description: "The Stage's name, which is also its page name." },
       html: html('The Stage in party voice, as HTML.'),
+      actors: STAGE_ACTORS_SCHEMA,
       objectives: {
         type: 'array',
         description:

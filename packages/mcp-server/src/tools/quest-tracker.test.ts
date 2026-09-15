@@ -94,3 +94,50 @@ describe('quest giver links', () => {
     });
   });
 });
+
+describe('stage actors', () => {
+  const actorsOf = (tool: string) =>
+    definition(tool).inputSchema.properties.stages.items.properties.actors;
+
+  it('lets a Stage carry actors on quest-create and quest-update', () => {
+    for (const tool of ['quest-create', 'quest-update']) {
+      const actors = actorsOf(tool);
+      expect(actors?.type).toBe('array');
+      expect(Object.keys(actors.items.properties).sort()).toEqual(
+        ['actorName', 'actorUuid', 'label', 'reveal', 'role'].sort()
+      );
+      expect(actors.items.additionalProperties).toBe(false);
+    }
+  });
+
+  it("offers the module's five roles and three reveal states, and says reveal defaults to hidden", () => {
+    const { role, reveal } = actorsOf('quest-create').items.properties;
+    expect(role.enum).toEqual(['meet', 'defeat', 'protect', 'find', 'other']);
+    expect(reveal.enum).toEqual(['hidden', 'unknown', 'named']);
+    expect(reveal.description).toMatch(/default: hidden/i);
+  });
+
+  it('tells the model the actor has to be a world actor, named once', () => {
+    const { description } = actorsOf('quest-create');
+    expect(description).toMatch(/world/i);
+    expect(description).toMatch(/never both/i);
+  });
+
+  it('forwards stage actors unchanged to the module query', async () => {
+    const { tools, query } = makeTools();
+    const args = {
+      name: 'The Warded Chapel',
+      stages: [
+        {
+          title: 'Raise the ward',
+          actors: [
+            { actorName: 'Brother Aldous', role: 'protect', reveal: 'named' },
+            { actorUuid: 'Actor.x1y2z3', role: 'defeat' },
+          ],
+        },
+      ],
+    };
+    await tools.handleToolCall('quest-create', args);
+    expect(query).toHaveBeenCalledWith('quest-tracker.createQuest', args);
+  });
+});
