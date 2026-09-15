@@ -62,3 +62,35 @@ describe('quest-update correction', () => {
     expect(Object.hasOwn(payload, 'correction')).toBe(false);
   });
 });
+
+describe('quest giver links', () => {
+  it('advertises an actor end and a faction end, each nullable, on both quest tools', () => {
+    for (const tool of ['quest-create', 'quest-update']) {
+      const giver = definition(tool).inputSchema.properties.giver;
+      expect(giver.additionalProperties).toBe(false);
+      expect(Object.keys(giver.properties).sort()).toEqual(
+        ['actorName', 'actorUuid', 'factionName', 'factionUuid', 'label'].sort()
+      );
+      for (const end of ['actorUuid', 'actorName', 'factionUuid', 'factionName']) {
+        expect(giver.properties[end].type).toEqual(['string', 'null']);
+      }
+    }
+  });
+
+  it('tells the model that naming only the actor keeps the faction, and null clears', () => {
+    const { description } = definition('quest-update').inputSchema.properties.giver;
+    expect(description).toMatch(/keeps the faction/i);
+    expect(description).toMatch(/null clears/i);
+    expect(description).toMatch(/never a compendium/i);
+  });
+
+  it('forwards a giver unchanged, a null end included', async () => {
+    const { tools, query } = makeTools();
+    const giver = { actorName: 'Lord Rhyne', factionUuid: null };
+    await tools.handleToolCall('quest-update', { name: 'The Hollow Ledger', giver });
+    expect(query).toHaveBeenCalledWith('quest-tracker.updateQuest', {
+      name: 'The Hollow Ledger',
+      giver: { actorName: 'Lord Rhyne', factionUuid: null },
+    });
+  });
+});

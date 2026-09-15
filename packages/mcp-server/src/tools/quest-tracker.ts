@@ -46,11 +46,29 @@ const STATUS_VALUES = ['lead', 'active', 'resolved', 'failed', 'expired'] as con
 const GIVER_SCHEMA = {
   type: 'object',
   description:
-    'The person, office, or faction the quest is issued on behalf of. Free text only: linking a giver to its Actor or Faction document is done in Foundry.',
+    "The person, office, or faction the quest is issued on behalf of: a free-text label, a world Actor, a Faction, or both, the faction then being the actor's cover story. Name each link by its uuid or its name, never both. On quest-update only the keys you send change: naming just the actor keeps the faction already on the giver, and an end sent as null clears that link. When the giver already has a faction and you are changing the actor, ask the GM whether to keep it before you send null. Actors come from this world only, never a compendium or a token; a name that matches no actor or several is refused, so find the uuid with actor-list or actor-get. The faction is the one the party is told; the actor's real faction is never read from here.",
   properties: {
     label: {
       type: 'string',
       description: 'How the party would name them, e.g. "The harbourmaster\'s clerk".',
+    },
+    actorUuid: {
+      type: ['string', 'null'],
+      description: "A world actor's uuid, e.g. \"Actor.a1b2c3\". Preferred over actorName. null clears the actor.",
+    },
+    actorName: {
+      type: ['string', 'null'],
+      description:
+        "A world actor's exact name, capitals included, if you do not have its uuid. Never send with actorUuid.",
+    },
+    factionUuid: {
+      type: ['string', 'null'],
+      description: "The faction entry's uuid. Preferred over factionName. null clears the faction.",
+    },
+    factionName: {
+      type: ['string', 'null'],
+      description:
+        "The faction's exact name in the world, if you do not have its uuid. Never send with factionUuid.",
     },
   },
   additionalProperties: false,
