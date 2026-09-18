@@ -30,6 +30,7 @@ import { EffectManagementTools } from './tools/effect-management.js';
 import { QuestCreationTools } from './tools/quest-creation.js';
 
 import { QuestTrackerTools } from './tools/quest-tracker.js';
+import { SonsOfSetBridgeTools } from './tools/sons-of-set-bridge.js';
 
 import { DiceRollTools } from './tools/dice-roll.js';
 
@@ -1213,6 +1214,7 @@ async function startBackend(): Promise<void> {
   const questCreationTools = new QuestCreationTools({ foundryClient, logger });
 
   const questTrackerTools = new QuestTrackerTools({ foundryClient, logger });
+  const sonsOfSetBridgeTools = new SonsOfSetBridgeTools({ foundryClient, logger });
 
   const diceRollTools = new DiceRollTools({ foundryClient, logger });
 
@@ -1441,6 +1443,8 @@ async function startBackend(): Promise<void> {
     ...questCreationTools.getToolDefinitions(),
 
     ...questTrackerTools.getToolDefinitions(),
+
+    ...sonsOfSetBridgeTools.getToolDefinitions(),
 
     ...diceRollTools.getToolDefinitions(),
 
@@ -1695,6 +1699,16 @@ async function startBackend(): Promise<void> {
                 case 'quest-list':
                 case 'quest-get':
                   result = await questTrackerTools.handleToolCall(name, args);
+
+                  break;
+
+                case 'mej-sheet-create':
+                case 'mej-sheet-get':
+                case 'mej-sheet-update':
+                case 'mej-sheet-list':
+                case 'mej-relationship-set':
+                case 'chat-list':
+                  result = await sonsOfSetBridgeTools.handleToolCall(name, args);
 
                   break;
 
