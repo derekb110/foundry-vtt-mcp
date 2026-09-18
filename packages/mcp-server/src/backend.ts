@@ -1707,6 +1707,7 @@ async function startBackend(): Promise<void> {
                 case 'mej-sheet-update':
                 case 'mej-sheet-list':
                 case 'mej-relationship-set':
+                case 'mej-shop-stock':
                 case 'chat-list':
                   result = await sonsOfSetBridgeTools.handleToolCall(name, args);
 

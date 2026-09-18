@@ -26,6 +26,7 @@ const TOOL_QUERIES = {
   'mej-sheet-update': 'mejUpdateSheet',
   'mej-sheet-list': 'mejListSheets',
   'mej-relationship-set': 'mejSetRelationship',
+  'mej-shop-stock': 'mejShopStock',
   'chat-list': 'chatList',
 } as const;
 
@@ -126,6 +127,26 @@ export class SonsOfSetBridgeTools {
             ...SHEET_REF,
             newName: { type: 'string', description: 'Rename the sheet.' },
             ...SHEET_CONTENT,
+            shop: {
+              type: 'object',
+              description: 'Shop sheets only; refused elsewhere.',
+              properties: {
+                state: { type: 'string', enum: ['open', 'closed'] },
+                purchasing: {
+                  type: 'string',
+                  enum: ['locked', 'free', 'confirm'],
+                  description:
+                    'How players buy: locked, free, or confirm (GM approves each request).',
+                },
+                selling: {
+                  type: 'string',
+                  enum: ['locked', 'free', 'confirm'],
+                  description: 'How players sell to the shop.',
+                },
+                twentyfour: { type: 'boolean', description: '24-hour clock on the sheet.' },
+              },
+              additionalProperties: false,
+            },
           },
           additionalProperties: false,
         },
@@ -159,6 +180,81 @@ export class SonsOfSetBridgeTools {
             reverseSecret: { type: 'string' },
             hidden: { type: 'boolean' },
             remove: { type: 'boolean' },
+          },
+          additionalProperties: false,
+        },
+      },
+      {
+        name: 'mej-shop-stock',
+        description:
+          'Stock an MEJ shop sheet: add items, change stock rows, remove them. add takes item uuids (world "Item.xxxx" or compendium "Compendium.pack.Item.xxxx"); price defaults from the item\'s system price and cost (what buyers pay) defaults to price. Adding an item already in stock bumps its quantity. update/remove address rows by the id mej-shop-stock returned or by exact item name. dnd5e spells are refused — stock a scroll item. Shop open/closed and purchasing mode live on mej-sheet-update\'s shop block.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            ...SHEET_REF,
+            add: {
+              type: 'array',
+              description: 'Items to add to stock.',
+              items: {
+                type: 'object',
+                properties: {
+                  itemUuid: { type: 'string', description: 'World or compendium Item uuid.' },
+                  quantity: { type: 'number', description: 'Default 1.' },
+                  price: {
+                    type: 'string',
+                    description: '"25 gp". Default: the item\'s system price.',
+                  },
+                  cost: { type: 'string', description: 'What buyers pay. Default: price.' },
+                  hide: { type: 'boolean', description: 'Hidden from players. Default false.' },
+                  lock: { type: 'boolean', description: 'Not purchasable. Default false.' },
+                },
+                required: ['itemUuid'],
+                additionalProperties: false,
+              },
+            },
+            update: {
+              type: 'array',
+              description:
+                'Stock rows to change. quantity also resets remaining unless remaining is sent too.',
+              items: {
+                type: 'object',
+                properties: {
+                  id: {
+                    type: 'string',
+                    description: 'The stock row id. Preferred; never with itemName.',
+                  },
+                  itemName: {
+                    type: 'string',
+                    description: 'Exact item name, if unique in this shop.',
+                  },
+                  quantity: { type: 'number' },
+                  remaining: {
+                    type: 'number',
+                    description: 'Stock left to sell, if different from quantity.',
+                  },
+                  price: { type: 'string' },
+                  cost: { type: 'string' },
+                  hide: { type: 'boolean' },
+                  lock: { type: 'boolean' },
+                },
+                additionalProperties: false,
+              },
+            },
+            remove: {
+              type: 'array',
+              description:
+                'Stock rows to drop: row ids, exact item names, or { id } / { itemName } objects.',
+              items: {
+                anyOf: [
+                  { type: 'string' },
+                  {
+                    type: 'object',
+                    properties: { id: { type: 'string' }, itemName: { type: 'string' } },
+                    additionalProperties: false,
+                  },
+                ],
+              },
+            },
           },
           additionalProperties: false,
         },
