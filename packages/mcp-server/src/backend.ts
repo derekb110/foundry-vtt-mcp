@@ -31,6 +31,7 @@ import { QuestCreationTools } from './tools/quest-creation.js';
 
 import { QuestTrackerTools } from './tools/quest-tracker.js';
 import { SonsOfSetBridgeTools } from './tools/sons-of-set-bridge.js';
+import { SonsOfSetRegionTools } from './tools/sons-of-set-regions.js';
 
 import { DiceRollTools } from './tools/dice-roll.js';
 
@@ -1215,6 +1216,7 @@ async function startBackend(): Promise<void> {
 
   const questTrackerTools = new QuestTrackerTools({ foundryClient, logger });
   const sonsOfSetBridgeTools = new SonsOfSetBridgeTools({ foundryClient, logger });
+  const sonsOfSetRegionTools = new SonsOfSetRegionTools({ foundryClient, logger });
 
   const diceRollTools = new DiceRollTools({ foundryClient, logger });
 
@@ -1445,6 +1447,8 @@ async function startBackend(): Promise<void> {
     ...questTrackerTools.getToolDefinitions(),
 
     ...sonsOfSetBridgeTools.getToolDefinitions(),
+
+    ...sonsOfSetRegionTools.getToolDefinitions(),
 
     ...diceRollTools.getToolDefinitions(),
 
@@ -1710,6 +1714,16 @@ async function startBackend(): Promise<void> {
                 case 'mej-shop-stock':
                 case 'chat-list':
                   result = await sonsOfSetBridgeTools.handleToolCall(name, args);
+
+                  break;
+
+                case 'scene-info':
+                case 'region-list':
+                case 'region-create':
+                case 'region-update':
+                case 'region-delete':
+                case 'behavior-toggle':
+                  result = await sonsOfSetRegionTools.handleToolCall(name, args);
 
                   break;
 
