@@ -28,6 +28,8 @@ const TOOL_QUERIES = {
   'region-update': 'regionUpdate',
   'region-delete': 'regionDelete',
   'behavior-toggle': 'behaviorToggle',
+  'note-create': 'noteCreate',
+  'note-delete': 'noteDelete',
 } as const;
 
 const SCENE_ID = {
@@ -260,6 +262,114 @@ export class SonsOfSetRegionTools {
             disabled: { type: 'boolean', description: 'Default true.' },
           },
           required: ['region'],
+          additionalProperties: false,
+        },
+      },
+      {
+        name: 'note-create',
+        description:
+          'Sons of Set Regions module. Drop journal pins (Foundry Note documents) on a scene, each at the centroid of a named region or at an explicit point. A pin links to a JournalEntry (MEJ sheets are JournalEntries) and optionally one of its pages; players only see it if they can observe that entry or the pin is global, so pins to GM-only journals are GM reminders. One pin per entry+page per scene: a duplicate is refused unless replace:true. GM client only.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            sceneId: SCENE_ID,
+            units: { ...UNITS, description: 'Unit for x, y and offset. "px" (default) or "grid".' },
+            origin: {
+              ...ORIGIN,
+              description:
+                'Where (0,0) is for x and y. "canvas" (default) or "scene" (top-left of the map art).',
+            },
+            replace: {
+              type: 'boolean',
+              description:
+                'Delete existing pins to the same entry+page before creating. Default false (duplicate refused).',
+            },
+            notes: {
+              type: 'array',
+              minItems: 1,
+              items: {
+                type: 'object',
+                properties: {
+                  region: {
+                    description:
+                      'Region id or exact name (or {_id|name}). The pin lands at the center of the union bounding box of its non-hole shapes. Give this or x+y.',
+                    oneOf: [
+                      { type: 'string' },
+                      {
+                        type: 'object',
+                        properties: { _id: { type: 'string' }, name: { type: 'string' } },
+                      },
+                    ],
+                  },
+                  x: {
+                    type: 'number',
+                    description: 'Explicit position in units/origin. Requires y and no region.',
+                  },
+                  y: { type: 'number' },
+                  offset: {
+                    type: 'object',
+                    description:
+                      "Nudge in the caller's units, applied after the position is found.",
+                    properties: { x: { type: 'number' }, y: { type: 'number' } },
+                  },
+                  journal: {
+                    type: 'string',
+                    description: '"JournalEntry.<id>" uuid, bare id, or exact entry name.',
+                  },
+                  page: {
+                    type: 'string',
+                    description:
+                      'Page id or exact page name inside that entry. Omit to open the entry.',
+                  },
+                  text: {
+                    type: 'string',
+                    description: 'Hover label. Defaults to the region name, else the journal name.',
+                  },
+                  icon: {
+                    type: 'string',
+                    description: 'Texture path. Omit for the default book icon.',
+                  },
+                  tint: { type: 'string' },
+                  iconSize: { type: 'number', description: 'Default 40.' },
+                  fontSize: { type: 'number' },
+                  textAnchor: {
+                    description: 'A number or CENTER, BOTTOM, TOP, LEFT, RIGHT.',
+                    oneOf: [{ type: 'number' }, { type: 'string' }],
+                  },
+                  textColor: { type: 'string' },
+                  global: {
+                    type: 'boolean',
+                    description: 'Visible to every player regardless of vision or permission.',
+                  },
+                  elevation: { type: 'number' },
+                  locked: { type: 'boolean' },
+                  flags: { type: 'object' },
+                },
+                required: ['journal'],
+                additionalProperties: false,
+              },
+            },
+          },
+          required: ['notes'],
+          additionalProperties: false,
+        },
+      },
+      {
+        name: 'note-delete',
+        description:
+          'Sons of Set Regions module. Remove journal pins from a scene by note id, by linked journal (every pin to that entry), or all pins on the scene (all:true must be explicit). GM client only.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            sceneId: SCENE_ID,
+            ids: { type: 'array', items: { type: 'string' }, description: 'Note ids.' },
+            journals: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Journal uuids, ids, or exact names; deletes every pin linked to each.',
+            },
+            all: { type: 'boolean', description: 'Delete every pin on the scene.' },
+          },
           additionalProperties: false,
         },
       },

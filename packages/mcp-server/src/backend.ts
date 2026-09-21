@@ -1723,6 +1723,8 @@ async function startBackend(): Promise<void> {
                 case 'region-update':
                 case 'region-delete':
                 case 'behavior-toggle':
+                case 'note-create':
+                case 'note-delete':
                   result = await sonsOfSetRegionTools.handleToolCall(name, args);
 
                   break;

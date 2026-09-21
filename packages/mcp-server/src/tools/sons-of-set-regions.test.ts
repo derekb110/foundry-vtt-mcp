@@ -24,10 +24,12 @@ const TOOLS = [
   'region-update',
   'region-delete',
   'behavior-toggle',
+  'note-create',
+  'note-delete',
 ];
 
 describe('SonsOfSetRegionTools definitions', () => {
-  it('declares exactly the six region tools', () => {
+  it('declares exactly the eight region tools', () => {
     const { tools } = makeTools();
     expect(tools.getToolDefinitions().map(d => d.name)).toEqual(TOOLS);
   });
@@ -38,6 +40,9 @@ describe('SonsOfSetRegionTools definitions', () => {
     expect(byName['region-create'].inputSchema.required).toEqual(['regions']);
     expect(byName['region-update'].inputSchema.required).toEqual(['regions']);
     expect(byName['behavior-toggle'].inputSchema.required).toEqual(['region']);
+    expect(byName['note-create'].inputSchema.required).toEqual(['notes']);
+    expect(byName['note-create'].inputSchema.properties.notes.items.required).toEqual(['journal']);
+    expect(byName['note-delete'].inputSchema.required).toBeUndefined();
     expect(byName['region-create'].inputSchema.properties.regions.items.required).toEqual([
       'name',
       'shapes',
@@ -71,6 +76,21 @@ describe('SonsOfSetRegionTools forwarding', () => {
     expect(query).toHaveBeenLastCalledWith('sons-of-set.behaviorToggle', {
       region: 'C-Water-High',
       disabled: false,
+    });
+  });
+
+  it('forwards note-create and note-delete to their prefixed queries unchanged', async () => {
+    const { tools, query } = makeTools();
+    const create = {
+      sceneId: 'abc',
+      replace: true,
+      notes: [{ region: 'A-Alarm-Horn', journal: 'Hellfurnace Sky Bastion', text: 'horn' }],
+    };
+    await tools.handleToolCall('note-create', create);
+    expect(query).toHaveBeenCalledWith('sons-of-set.noteCreate', create);
+    await tools.handleToolCall('note-delete', { journals: ['Hellfurnace Sky Bastion'] });
+    expect(query).toHaveBeenLastCalledWith('sons-of-set.noteDelete', {
+      journals: ['Hellfurnace Sky Bastion'],
     });
   });
 
