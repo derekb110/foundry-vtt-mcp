@@ -74,7 +74,7 @@ const SHAPE_SCHEMA = {
 const BEHAVIOR_SCHEMA = {
   type: 'object',
   description:
-    "A RegionBehavior, passed to Foundry verbatim. type must be a registered behavior type (core v14: displayScrollingText, modifyMovementCost, applyActiveEffect, toggleBehavior, teleportToken, executeScript, executeMacro, pauseGame, suppressWeather, adjustDarknessLevel, changeLevel, defineSurface — scene-info with schema:true lists the live set with every system field). Field names inside system are the caller's responsibility; check them against scene-info schema:true first.",
+    "A RegionBehavior, passed to Foundry verbatim. type must be a registered behavior type (core v14: displayScrollingText, modifyMovementCost, applyActiveEffect, toggleBehavior, teleportToken, executeScript, executeMacro, pauseGame, suppressWeather, adjustDarknessLevel, changeLevel, defineSurface — scene-info with schema:true lists the live set with every system field). Field names inside system are the caller's responsibility; check them against scene-info schema:true first. Verified on 14.365: displayScrollingText fires on tokenAnimateIn (not tokenEnter) and its visibility is 0 GM / 1 Observer / 2 Anyone; modifyMovementCost.difficulties keys are walk/fly/swim/burrow on dnd5e; toggleBehavior runs its disable set then its enable set of behavior uuids; teleportToken takes a destinations set of region uuids.",
   properties: {
     _id: {
       type: 'string',
@@ -104,8 +104,16 @@ const REGION_COMMON = {
   },
   behaviors: { type: 'array', items: BEHAVIOR_SCHEMA },
   elevation: {
+    type: 'object',
     description:
-      'Passed verbatim. Foundry v13 stores {bottom, top}; check scene-info schema:true → schema.elevation ("number" or "object") before setting it on v14.',
+      'Passed verbatim. Foundry 14.365 stores {bottom, top, topInclusive} in scene distance units; scene-info schema:true → schema.elevation confirms the shape on the connected version.',
+    additionalProperties: true,
+  },
+  restriction: {
+    type: 'object',
+    description:
+      'v14 region-level restriction, passed verbatim: {enabled, type: "light"|"darkness"|"sight"|"sound"|"move", priority}. type "move" blocks movement into the region without any behavior.',
+    additionalProperties: true,
   },
   levels: {
     type: 'array',
