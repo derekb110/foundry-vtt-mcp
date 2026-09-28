@@ -2,6 +2,12 @@
 
 _For Claude Code. Written 2026-09-13 in the session that got self-hosting working. Feed this into the planning phase before writing code._
 
+> **Status note, 2026-09-28.** This spec is kept as written on 2026-09-13. Three things have changed since; where they conflict with the text below, this note wins.
+>
+> - **`master` is no longer an upstream mirror (§1).** It carries this fork's own commits, and work lands there through PRs on `derekb110/foundry-vtt-mcp`.
+> - **`chat-list` already exists (§2, §3.3).** It lives in `packages/mcp-server/src/tools/sons-of-set-bridge.ts` and forwards to `sons-of-set.chatList`, registered by the Sons of Set Bridge module. There is no `tools/chat.ts` and no separate chat module. Do not build either.
+> - **The merge recipe in §7 no longer applies.** `git merge --ff-only` on `master` fails now that `master` has diverged from upstream. Merge the upstream tag into `master` instead, and never push to `upstream`.
+
 ---
 
 ## 1. Context and boundaries
